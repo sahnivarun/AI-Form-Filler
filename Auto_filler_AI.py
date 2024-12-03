@@ -1,8 +1,4 @@
 # Import required libraries from various modules
-# from ibm_watson_machine_learning.foundation_models.extensions.langchain import WatsonxLLM
-# from ibm_watson_machine_learning.metanames import GenTextParamsMetaNames as GenParams
-# from ibm_watson_machine_learning.foundation_models import Model
-
 # langchain library for embeddings, text splitting, and conversational retrieval
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -133,32 +129,6 @@ def process_data():
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
     db = FAISS.from_documents(texts, embeddings)
     return db
-
-
-# Extract form field descriptions from HTML
-# def get_form_field_descriptions(html_content):
-#     soup = BeautifulSoup(html_content, 'html.parser')
-#     form_fields = soup.find_all(['input', 'select', 'textarea'])
-#     field_info = []
-
-#     for field in form_fields:
-#         field_data = {}
-#         label = soup.find('label', {'for': field.get('id')})
-#         if label:
-#             field_data['label'] = label.get_text().strip().rstrip(':')
-#         else:
-#             placeholder = field.get('placeholder')
-#             name = field.get('name')
-#             description = placeholder if placeholder else name
-#             if description:
-#                 field_data['label'] = description.strip()
-
-#         field_id = field.get('id') or field.get('name')
-#         if field_id:
-#             field_data['id'] = field_id
-
-#         if 'label' in field_data and 'id' in field_data:
-#             field_info.append(field_data)
 
 #     return field_info
 def get_form_field_descriptions(html_content):
