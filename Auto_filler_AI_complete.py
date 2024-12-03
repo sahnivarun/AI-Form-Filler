@@ -186,10 +186,13 @@ def home():
 @app.route('/api/get_tax_form_data', methods=['GET'])
 def get_tax_form_data():
     data_from_form = get_form_field_descriptions("templates/styled_tax_form.html")
+    print(data_from_form)
     structured_responses = filling_form(data_from_form)
-
+    print(structured_responses)
     # Convert responses to a JSON format for the frontend.
     response_data = {field['id']: field['response'] for field in structured_responses}
+    print("print_responses")
+    print(response_data)
     return jsonify(response_data)
 
 # Run the Flask application if this script is executed directly.

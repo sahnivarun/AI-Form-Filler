@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "Auto Form Filler LLM",
+    "version": "1.0",
+    "description": "Automatically fills forms on any webpage using AI.",
+    "permissions": ["scripting", "activeTab"],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icon.jpeg"
+    }
+  }
+  
