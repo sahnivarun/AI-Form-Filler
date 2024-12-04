@@ -171,46 +171,96 @@ def get_form_field_descriptions(html_content):
 
 
 # Automate form filling
+# def filling_form(form_fields_info):
+#     try:
+#         llm = G4FLLM()
+#         db = process_data()
+
+#         structured_responses = []
+#         for field in form_fields_info:
+#             # Updated intelligent prompt
+#             prompt = (
+#                 f"Extract the value for '{field['label']}' that matches the form field with ID '{field['id']}'. "
+#                 f"Only provide the value. If no relevant value is found in the document, respond with an empty string."
+#             )
+
+#             conversation_chain = ConversationalRetrievalChain.from_llm(
+#                 llm=llm,
+#                 retriever=db.as_retriever(search_kwargs={'k': 4}),
+#                 condense_question_prompt=PromptTemplate(input_variables=[], template=prompt),
+#             )
+
+#             def api_call():
+#                 return conversation_chain.invoke({"question": prompt, "chat_history": []})
+
+#             result = retry_with_backoff(api_call)
+#             response_text = result['answer'].strip() if result['answer'] else ""
+
+#             # Post-process the response to ensure it is clean
+#             if any(
+#                 phrase in response_text.lower()
+#                 for phrase in ["i'm sorry", "no relevant value", "not found", "lo siento"]
+#             ):
+#                 response_text = ""  # Leave the field blank
+
+#             # Append the cleaned response for the current field
+#             structured_responses.append({**field, "response": response_text})
+
+#         return structured_responses
+#     except Exception as e:
+#         print(f"Error in filling_form: {str(e)}")
+#         raise
+
+# Automate form filling with a single LLM call
 def filling_form(form_fields_info):
     try:
         llm = G4FLLM()
         db = process_data()
 
+        # Combine all field prompts into one with an example response format
+        field_prompts = [
+            f"- \"{field['label']}\" (Field ID: {field['id']})"
+            for field in form_fields_info
+        ]
+        combined_prompt = (
+            "Based on the document content, provide values for the following fields. "
+            "Respond in JSON format with field IDs as keys and the corresponding values. "
+            "If no relevant value is found for a field, use an empty string. Example response:\n\n"
+            '{"field_id_1": "value_1", "field_id_2": "", "field_id_3": "value_3"}\n\n'
+            "Fields:\n" + "\n".join(field_prompts)
+        )
+
+        conversation_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=db.as_retriever(search_kwargs={'k': 10}),  # Increase retrieval depth
+            condense_question_prompt=PromptTemplate(input_variables=[], template=combined_prompt),
+        )
+
+        def api_call():
+            return conversation_chain.invoke({"question": combined_prompt, "chat_history": []})
+
+        result = retry_with_backoff(api_call)
+        response_text = result['answer'].strip() if result['answer'] else ""
+        print(f"Raw LLM Response:\n{response_text}")
+
+        # Parse the JSON response
+        import json
+        try:
+            responses = json.loads(response_text)
+        except json.JSONDecodeError:
+            print(f"Failed to parse LLM response as JSON. Response:\n{response_text}")
+            responses = {}
+
+        # Match responses to form fields
         structured_responses = []
         for field in form_fields_info:
-            # Updated intelligent prompt
-            prompt = (
-                f"Extract the value for '{field['label']}' that matches the form field with ID '{field['id']}'. "
-                f"Only provide the value. If no relevant value is found in the document, respond with an empty string."
-            )
-
-            conversation_chain = ConversationalRetrievalChain.from_llm(
-                llm=llm,
-                retriever=db.as_retriever(search_kwargs={'k': 4}),
-                condense_question_prompt=PromptTemplate(input_variables=[], template=prompt),
-            )
-
-            def api_call():
-                return conversation_chain.invoke({"question": prompt, "chat_history": []})
-
-            result = retry_with_backoff(api_call)
-            response_text = result['answer'].strip() if result['answer'] else ""
-
-            # Post-process the response to ensure it is clean
-            if any(
-                phrase in response_text.lower()
-                for phrase in ["i'm sorry", "no relevant value", "not found", "lo siento"]
-            ):
-                response_text = ""  # Leave the field blank
-
-            # Append the cleaned response for the current field
-            structured_responses.append({**field, "response": response_text})
+            field_response = responses.get(field['id'], "")
+            structured_responses.append({**field, "response": field_response})
 
         return structured_responses
     except Exception as e:
         print(f"Error in filling_form: {str(e)}")
         raise
-
 
 def get_dynamic_html(url):
     chrome_options = Options()
