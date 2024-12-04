@@ -91,13 +91,6 @@ class G4FLLM(LLM):
                 output = output[:min_stop]
         return output
 
-# Initialize and retrieve the language model from IBM Watson
-def get_llm_gpt():
-    llm: LLM = G4FLLM(
-    model=models.gpt_35_turbo,
-    provider=Provider.Aichat,
-    )
-    return llm
 # Retrieve the custom Google GenAI LLM
 def get_llm():
     os.environ["API_KEY"] = "AIzaSyDihkQrXCbVsaRb_4lkrIy7FmIulrVD77s"
@@ -162,21 +155,6 @@ def get_form_field_descriptions(html_content):
             field_info.append(field_data)
 
     return field_info
-
-
-def get_dynamic_html(url):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    #chrome_service = Service('C:\Users\varun\Downloads\chrome-win64')  # Update this path
-    chrome_service = Service('chromedriver.exe')  # Escaping backslashes
-    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
-
-    driver.get(url)
-    time.sleep(2)  # Wait for dynamic content to load
-    page_source = driver.page_source
-    driver.quit()
-
-    return page_source
 
 # Initialize Flask app
 app = Flask(__name__)
