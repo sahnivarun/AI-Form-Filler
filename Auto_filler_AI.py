@@ -34,6 +34,9 @@ import random
 from g4f import Provider, models
 from langchain.llms.base import LLM
 
+import json
+import logging
+
 from langchain_g4f import G4FLLM
 
 def retry_with_backoff(api_call, max_retries=5):
@@ -88,23 +91,6 @@ class G4FLLM(LLM):
                 output = output[:min_stop]
         return output
 
-
-# Initialize and retrieve the language model from IBM Watson
-def get_llm_old():
-    my_credentials = {"url": "https://us-south.ml.cloud.ibm.com"}
-    params = {
-        GenParams.MAX_NEW_TOKENS: 256,
-        GenParams.TEMPERATURE: 0.0,
-    }
-    LLAMA2_model = Model(
-        model_id='meta-llama/llama-2-70b-chat',
-        credentials=my_credentials,
-        params=params,
-        project_id="skills-network"
-    )
-    llm = WatsonxLLM(model=LLAMA2_model)
-    return llm
-
 # Initialize and retrieve the language model from IBM Watson
 def get_llm_gpt():
     llm: LLM = G4FLLM(
@@ -119,18 +105,17 @@ def get_llm():
     model = genai.GenerativeModel("gemini-1.5-flash")
     return CustomGenAIModel(model)
 
-
-# Process and index PDF documents
 def process_data():
     loader = PyPDFDirectoryLoader("info")
     docs = loader.load()
+    logger.info(f"Loaded Documents: {docs}")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=50)
     texts = text_splitter.split_documents(docs)
+    logger.info(f"Split Texts: {texts}")
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
     db = FAISS.from_documents(texts, embeddings)
     return db
 
-#     return field_info
 def get_form_field_descriptions(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     form_fields = soup.find_all(['input', 'select', 'textarea'])
@@ -138,18 +123,18 @@ def get_form_field_descriptions(html_content):
 
     for field in form_fields:
         field_data = {}
-        
+
         # Try to find the label using the 'for' attribute
         label = None
         if field.get('id'):
             label = soup.find('label', {'for': field.get('id')})
-        
+
         # If no label is found, check parent or previous siblings for associated text
         if not label:
             parent = field.find_parent('div', class_='form-group')
             if parent:
                 label = parent.find('label')
-        
+
         # Extract label text or fallback to placeholder/name attributes
         if label and label.get_text(strip=True):
             field_data['label'] = label.get_text(strip=True)
@@ -163,104 +148,21 @@ def get_form_field_descriptions(html_content):
         # Use 'id' if available, otherwise use 'name'
         field_data['id'] = field.get('id') or field.get('name')
 
+        # Determine field type
+        field_type = field.get('type', 'text')  # Default to 'text' if no type is specified
+        if field.name == 'textarea':
+            field_type = 'textarea'
+        elif field.name == 'select':
+            field_type = 'select'
+
+        field_data['type'] = field_type
+
         # Ensure both label and id are present
         if 'label' in field_data and 'id' in field_data:
             field_info.append(field_data)
 
     return field_info
 
-
-# Automate form filling
-# def filling_form(form_fields_info):
-#     try:
-#         llm = G4FLLM()
-#         db = process_data()
-
-#         structured_responses = []
-#         for field in form_fields_info:
-#             # Updated intelligent prompt
-#             prompt = (
-#                 f"Extract the value for '{field['label']}' that matches the form field with ID '{field['id']}'. "
-#                 f"Only provide the value. If no relevant value is found in the document, respond with an empty string."
-#             )
-
-#             conversation_chain = ConversationalRetrievalChain.from_llm(
-#                 llm=llm,
-#                 retriever=db.as_retriever(search_kwargs={'k': 4}),
-#                 condense_question_prompt=PromptTemplate(input_variables=[], template=prompt),
-#             )
-
-#             def api_call():
-#                 return conversation_chain.invoke({"question": prompt, "chat_history": []})
-
-#             result = retry_with_backoff(api_call)
-#             response_text = result['answer'].strip() if result['answer'] else ""
-
-#             # Post-process the response to ensure it is clean
-#             if any(
-#                 phrase in response_text.lower()
-#                 for phrase in ["i'm sorry", "no relevant value", "not found", "lo siento"]
-#             ):
-#                 response_text = ""  # Leave the field blank
-
-#             # Append the cleaned response for the current field
-#             structured_responses.append({**field, "response": response_text})
-
-#         return structured_responses
-#     except Exception as e:
-#         print(f"Error in filling_form: {str(e)}")
-#         raise
-
-# Automate form filling with a single LLM call
-def filling_form(form_fields_info):
-    try:
-        llm = G4FLLM()
-        db = process_data()
-
-        # Combine all field prompts into one with an example response format
-        field_prompts = [
-            f"- \"{field['label']}\" (Field ID: {field['id']})"
-            for field in form_fields_info
-        ]
-        combined_prompt = (
-            "Based on the document content, provide values for the following fields. "
-            "Respond in JSON format with field IDs as keys and the corresponding values. "
-            "If no relevant value is found for a field, use an empty string. Example response:\n\n"
-            '{"field_id_1": "value_1", "field_id_2": "", "field_id_3": "value_3"}\n\n'
-            "Fields:\n" + "\n".join(field_prompts)
-        )
-
-        conversation_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=db.as_retriever(search_kwargs={'k': 10}),  # Increase retrieval depth
-            condense_question_prompt=PromptTemplate(input_variables=[], template=combined_prompt),
-        )
-
-        def api_call():
-            return conversation_chain.invoke({"question": combined_prompt, "chat_history": []})
-
-        result = retry_with_backoff(api_call)
-        response_text = result['answer'].strip() if result['answer'] else ""
-        print(f"Raw LLM Response:\n{response_text}")
-
-        # Parse the JSON response
-        import json
-        try:
-            responses = json.loads(response_text)
-        except json.JSONDecodeError:
-            print(f"Failed to parse LLM response as JSON. Response:\n{response_text}")
-            responses = {}
-
-        # Match responses to form fields
-        structured_responses = []
-        for field in form_fields_info:
-            field_response = responses.get(field['id'], "")
-            structured_responses.append({**field, "response": field_response})
-
-        return structured_responses
-    except Exception as e:
-        print(f"Error in filling_form: {str(e)}")
-        raise
 
 def get_dynamic_html(url):
     chrome_options = Options()
@@ -280,42 +182,97 @@ def get_dynamic_html(url):
 app = Flask(__name__)
 CORS(app)
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# API endpoint for form auto-fill
+def get_json_request(form_fields_info):
+    """
+    Creates a JSON object where keys are field labels and values are empty strings.
+    """
+    json_request = {field['label']: "" for field in form_fields_info if field['type'] == 'text'}
+    logger.info(f"Generated JSON request: {json_request}")
+    return json_request
+
+
+def filling_form_single_request(form_fields_info):
+    try:
+        llm = get_llm()
+        db = process_data()
+        json_request = get_json_request(form_fields_info)
+
+        prompt = (
+            f"Using the provided document content, fill in the following JSON object strictly in JSON format. "
+            f"Keys are the questions, and values are the answers based on the document. "
+            f"If the document does not contain an answer for a key, return an empty string for that key. "
+            f"Return only the JSON object and no additional text or explanation.\n\n{json.dumps(json_request)}"
+        )
+        logger.info(f"Prompt sent to LLM: {prompt}")
+
+        conversation_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=db.as_retriever(search_kwargs={'k': 4}),
+        )
+
+        def api_call():
+            response = conversation_chain.invoke({"question": prompt, "chat_history": []})
+            logger.info(f"Retrieved Context: {response.get('context', '')}")
+            return response
+
+        result = retry_with_backoff(api_call)
+        llm_response = result['answer'].strip() if result['answer'] else "{}"
+        logger.info(f"Raw LLM response: {llm_response}")
+
+        if llm_response.startswith("```") and llm_response.endswith("```"):
+            llm_response = llm_response.strip("```json").strip()
+        logger.info(f"Cleaned LLM response: {llm_response}")
+
+        try:
+            filled_data = json.loads(llm_response)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing JSON response from LLM: {e}")
+            raise ValueError("Invalid JSON response from LLM.")
+
+        for field in form_fields_info:
+            if field['label'] in filled_data:
+                field['response'] = filled_data[field['label']]
+
+        logger.info(f"Final filled form fields: {form_fields_info}")
+        return form_fields_info
+
+    except Exception as e:
+        logger.error(f"Error in filling_form_single_request: {e}")
+        raise
+
+
 @app.route('/api/auto_fill', methods=['POST'])
 def auto_fill():
+    """
+    Flask endpoint for auto-filling the form.
+    """
     if request.is_json:
         html_content = request.json.get('html_content', '')
-        #url = request.json.get('url', '')
-        # print("url :")
-        # print(url)
-        # if not url:
-        #     return jsonify({"error": "Missing 'url' in request"}), 400
-        #print(html_content)
-        # if not html_content:
-        #     return jsonify({"error": "Missing 'html_content' in request"}), 400
         try:
-            #html_content = get_dynamic_html(url)
-            #print(html_content)
             form_fields_info = get_form_field_descriptions(html_content)
-            print(form_fields_info)
-            structured_responses = filling_form(form_fields_info)
-            print("structured_responses")
-            print(structured_responses)
-            #response_data = {field['id']: field['response'] for field in structured_responses}
+            logger.info(f"Extracted Form Fields Info: {form_fields_info}")
+
+            # Fill form with a single LLM call
+            structured_responses = filling_form_single_request(form_fields_info)
+            logger.info(f"Structured Responses: {structured_responses}")
+
+            # Create a response mapping field IDs to their responses
             response_data = {
-                field['id'] if field['id'] else field['label']: field['response']
-                for field in structured_responses
+                field['id']: field.get('response', "")
+                for field in structured_responses if field['type'] == 'text'
             }
-            print("print_responses")
-            print(response_data)
+            logger.info(f"Final Response Data: {response_data}")
+
             return jsonify(response_data), 200
         except Exception as e:
-            print(f"Error in auto_fill: {str(e)}")
+            logger.error(f"Error in auto_fill: {e}")
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Invalid request format"}), 400
-
 
 # Flask app entry point
 if __name__ == '__main__':
