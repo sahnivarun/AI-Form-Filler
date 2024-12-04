@@ -179,6 +179,7 @@ def filling_form_single_request(form_fields_info):
         db = process_data()
         json_request = get_json_request(form_fields_info)
 
+        # Create a prompt for the LLM
         prompt = (
             f"Using the provided document content, fill in the following JSON object strictly in JSON format. "
             f"Keys are the questions, and values are the answers based on the document. "
@@ -187,33 +188,42 @@ def filling_form_single_request(form_fields_info):
         )
         logger.info(f"Prompt sent to LLM: {prompt}")
 
+        # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=db.as_retriever(search_kwargs={'k': 4}),
         )
 
+        # Define an API call function for retries
         def api_call():
             response = conversation_chain.invoke({"question": prompt, "chat_history": []})
             logger.info(f"Retrieved Context: {response.get('context', '')}")
             return response
 
+        # Call the API with retry mechanism
         result = retry_with_backoff(api_call)
         llm_response = result['answer'].strip() if result['answer'] else "{}"
         logger.info(f"Raw LLM response: {llm_response}")
 
+        # Clean up the LLM response if it contains code block markers
         if llm_response.startswith("```") and llm_response.endswith("```"):
             llm_response = llm_response.strip("```json").strip()
         logger.info(f"Cleaned LLM response: {llm_response}")
 
+        # Parse the JSON response
         try:
             filled_data = json.loads(llm_response)
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON response from LLM: {e}")
             raise ValueError("Invalid JSON response from LLM.")
 
+        # Update form_fields_info with the responses
         for field in form_fields_info:
-            if field['label'] in filled_data:
-                field['response'] = filled_data[field['label']]
+            field_label = field.get('label', '')
+            if field_label in filled_data:
+                field['response'] = filled_data[field_label]
+            else:
+                field['response'] = ""  # Default to empty string if no response is available
 
         logger.info(f"Final filled form fields: {form_fields_info}")
         return form_fields_info
