@@ -154,6 +154,9 @@ def get_form_field_descriptions(html_content):
             field_type = 'textarea'
         elif field.name == 'select':
             field_type = 'select'
+        elif field_type == 'file':
+            field_data['type'] = 'file'
+            field_data['file_path'] = "C:/Users/varun/OneDrive/Documents/docs/Sahni_Varun_d.pdf"  # Specify the local path to the resume
 
         field_data['type'] = field_type
 
@@ -236,6 +239,9 @@ def filling_form_single_request(form_fields_info):
         for field in form_fields_info:
             if field['label'] in filled_data:
                 field['response'] = filled_data[field['label']]
+            if field['type'] == 'file':
+                field['response'] = field.get('file_path', "")
+                #field['file_path'] = "C:/Users/varun/OneDrive/Documents/docs/Sahni_Varun_d.pdf"
 
         logger.info(f"Final filled form fields: {form_fields_info}")
         return form_fields_info
@@ -261,9 +267,13 @@ def auto_fill():
             logger.info(f"Structured Responses: {structured_responses}")
 
             # Create a response mapping field IDs to their responses
+            # response_data = {
+            #     field['id']: field.get('response', "")
+            #     for field in structured_responses if field['type'] == 'text'
+            # }
             response_data = {
-                field['id']: field.get('response', "")
-                for field in structured_responses if field['type'] == 'text'
+                field['id']: field.get('response', "") if field['type'] != 'file' else field.get('file_path', "")
+                for field in structured_responses
             }
             logger.info(f"Final Response Data: {response_data}")
 
