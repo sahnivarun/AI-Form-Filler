@@ -262,6 +262,63 @@ def auto_fill():
     else:
         return jsonify({"error": "Invalid request format"}), 400
 
+# Add the new endpoint for generating cover letters
+@app.route('/api/generate_cover_letter', methods=['POST'])
+def generate_cover_letter():
+    """
+    Flask endpoint for generating a cover letter.
+    """
+    if request.is_json:
+        job_description = request.json.get('job_description', '')
+        try:
+            # Generate the cover letter using the LLM
+            cover_letter = create_cover_letter(job_description)
+            return jsonify({'cover_letter': cover_letter}), 200
+        except Exception as e:
+            logger.error(f"Error in generate_cover_letter: {e}")
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "Invalid request format"}), 400
+# Function to create a cover letter using the LLM
+def create_cover_letter(job_description):
+    try:
+        llm = get_llm()
+        # Load user's information from documents
+        db = process_data()
+
+        # Create a prompt for the LLM
+        prompt = (
+            f"Using the following job description and your knowledge about me from my documents, "
+            f"please write a personalized cover letter for this job application. "
+            f"Job Description:\n{job_description}\n\n"
+            f"Cover Letter:"
+        )
+        logger.info(f"Prompt sent to LLM: {prompt}")
+
+        # Create a conversational retrieval chain
+        conversation_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=db.as_retriever(search_kwargs={'k': 4}),
+        )
+
+        # Define an API call function for retries
+        def api_call():
+            response = conversation_chain.invoke({"question": prompt, "chat_history": []})
+            logger.info(f"LLM Response: {response.get('answer', '')}")
+            return response
+
+        # Call the API with retry mechanism
+        result = retry_with_backoff(api_call)
+        cover_letter = result['answer'].strip() if result['answer'] else ""
+        logger.info(f"Generated Cover Letter: {cover_letter}")
+
+        return cover_letter
+
+    except Exception as e:
+        logger.error(f"Error in create_cover_letter: {e}")
+        raise
+    
+      
 # Flask app entry point
 if __name__ == '__main__':
     app.run(debug=True, port=5055)
