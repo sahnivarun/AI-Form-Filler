@@ -159,105 +159,6 @@ def get_form_field_descriptions(html_content):
 
     return field_info
 
-    # """
-    # Extracts form field descriptions from the provided HTML content using BeautifulSoup.
-    # """
-    # soup = BeautifulSoup(html_content, 'html.parser')
-    # form_fields = soup.find_all(['input', 'select', 'textarea'])
-    # field_info = []
-
-    # for field in form_fields:
-    #     field_data = {}
-
-    #     # Try to find a label using the 'for' attribute
-    #     label = None
-    #     if field.get('id'):
-    #         label = soup.find('label', {'for': field.get('id')})
-
-    #     # If no label is found, check parent or siblings for associated text
-    #     if not label:
-    #         # Look for text within the closest parent element
-    #         parent = field.find_parent(['div', 'li', 'section'])
-    #         if parent:
-    #             label = parent.find('label') or parent.find('div', class_='text')
-
-    #     # Use the field's placeholder, name, or text from nearby elements as a fallback
-    #     if label and label.get_text(strip=True):
-    #         field_data['label'] = label.get_text(strip=True)
-    #     elif field.get('placeholder'):
-    #         field_data['label'] = field.get('placeholder')
-    #     elif field.get('name'):
-    #         field_data['label'] = field.get('name')
-    #     elif field.get('aria-label'):  # Accessibility attribute
-    #         field_data['label'] = field.get('aria-label')
-    #     else:
-    #         continue  # Skip if no meaningful label can be found
-
-    #     # Use 'id' if available, otherwise fallback to 'name'
-    #     field_data['id'] = field.get('id') or field.get('name')
-
-    #     # Determine field type
-    #     field_type = field.get('type', 'text')  # Default to 'text' if no type is specified
-    #     if field.name == 'textarea':
-    #         field_type = 'textarea'
-    #     elif field.name == 'select':
-    #         field_type = 'select'
-
-    #     field_data['type'] = field_type
-
-    #     # Add the field data to the list
-    #     if 'label' in field_data and 'id' in field_data:
-    #         field_info.append(field_data)
-
-    # return field_info
-
-# def get_form_field_descriptions(html_content):
-#     soup = BeautifulSoup(html_content, 'html.parser')
-#     form_fields = soup.find_all(['input', 'select', 'textarea'])
-#     field_info = []
-
-#     for field in form_fields:
-#         field_data = {}
-
-#         # Try to find the label using the 'for' attribute
-#         label = None
-#         if field.get('id'):
-#             label = soup.find('label', {'for': field.get('id')})
-
-#         # If no label is found, check parent or previous siblings for associated text
-#         if not label:
-#             parent = field.find_parent('div', class_='form-group')
-#             if parent:
-#                 label = parent.find('label')
-
-#         # Extract label text or fallback to placeholder/name attributes
-#         if label and label.get_text(strip=True):
-#             field_data['label'] = label.get_text(strip=True)
-#         elif field.get('placeholder'):
-#             field_data['label'] = field.get('placeholder')
-#         elif field.get('name'):
-#             field_data['label'] = field.get('name')
-#         else:
-#             continue  # Skip fields without meaningful labels
-
-#         # Use 'id' if available, otherwise use 'name'
-#         field_data['id'] = field.get('id') or field.get('name')
-
-#         # Determine field type
-#         field_type = field.get('type', 'text')  # Default to 'text' if no type is specified
-#         if field.name == 'textarea':
-#             field_type = 'textarea'
-#         elif field.name == 'select':
-#             field_type = 'select'
-
-#         field_data['type'] = field_type
-
-#         # Ensure both label and id are present
-#         if 'label' in field_data and 'id' in field_data:
-#             field_info.append(field_data)
-
-#     return field_info
-
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
@@ -276,87 +177,6 @@ def get_json_request(form_fields_info):
     logger.info(f"Generated JSON request: {json_request}")
     return json_request
 
-
-# def filling_form_single_request(form_fields_info):
-#     try:
-#         llm = get_llm()
-#         db = process_data()
-#         json_request = get_json_request(form_fields_info)
-
-#         # Create a prompt for the LLM
-#         prompt = (
-#             # f"Using the provided document content, fill in the following JSON object strictly in JSON format. "
-#             # f"Keys are the questions, and values are the answers based on the document. "
-#             # f"If the document does not contain an answer for a key, return an empty string for that key. "
-#             # f"Return only the JSON object and no additional text or explanation.\n\n{json.dumps(json_request)}"
-#             f"You are an AI assistant helping to fill out a job application form using the provided documents. "
-#             f"For each question in the form, generate an appropriate response based on the user's resume, documents, "
-#             f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
-#             f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
-#             f"generate a thoughtful answer based on common professional aspirations and values. "
-#             f"If the documents do not contain an answer for a question, provide a general but contextually relevant response. "
-#             f"Return the completed JSON object strictly in JSON format. "
-#             f"JSON object:\n\n{json.dumps(json_request)}"
-#         )
-#         #logger.info(f"Prompt sent to LLM: {prompt}")
-
-#         # Create a conversational retrieval chain
-#         conversation_chain = ConversationalRetrievalChain.from_llm(
-#             llm=llm,
-#             retriever=db.as_retriever(search_kwargs={'k': 4}),
-#         )
-
-#         # Define an API call function for retries
-#         def api_call():
-#             response = conversation_chain.invoke({"question": prompt, "chat_history": []})
-#             #logger.info(f"Retrieved Context: {response.get('context', '')}")
-#             return response
-
-#         # Call the API with retry mechanism
-#         result = retry_with_backoff(api_call)
-#         llm_response = result['answer'].strip() if result['answer'] else "{}"
-#         logger.info(f"Raw LLM response: {llm_response}")
-
-#         # Clean up the LLM response if it contains code block markers
-#         if llm_response.startswith("```") and llm_response.endswith("```"):
-#             llm_response = llm_response.strip("```json").strip()
-#         #logger.info(f"Cleaned LLM response: {llm_response}")
-
-#         # Parse the JSON response
-#         try:
-#             filled_data = json.loads(llm_response)
-#         except json.JSONDecodeError as e:
-#             logger.error(f"Error parsing JSON response from LLM: {e}")
-#             raise ValueError("Invalid JSON response from LLM.")
-
-#         # Update form_fields_info with the responses
-#         # for field in form_fields_info:
-#         #     field_label = field.get('label', '')
-#         #     if field_label in filled_data:
-#         #         field['response'] = filled_data[field_label]
-#         #     else:
-#         #         field['response'] = ""  # Default to empty string if no response is available
-
-#         for field in form_fields_info:
-#             label = field.get('label', '').strip()
-#             field_id = field.get('id', '')
-
-#             # Map the response if the label matches or the ID matches in the LLM response
-#             if label in llm_response:
-#                 field['response'] = llm_response[label]
-#             elif field_id in llm_response:
-#                 field['response'] = llm_response[field_id]
-#             else:
-#                 field['response'] = ""  # Default to empty string if no match is found
-#         # logger.info(f"Final filled form fields: {form_fields_info}")
-
-#         #return form_fields_info
-
-#         return form_fields_info
-
-#     except Exception as e:
-#         logger.error(f"Error in filling_form_single_request: {e}")
-#         raise
 def filling_form_single_request(form_fields_info):
     try:
         llm = get_llm()
@@ -371,7 +191,7 @@ def filling_form_single_request(form_fields_info):
             f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
             f"generate a thoughtful answer based on common professional aspirations and values. "
             f"If the documents do not contain an answer for a question, provide a general but contextually relevant response. "
-            f"Return the completed JSON object strictly in JSON format. "
+            f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments. "
             f"JSON object:\n\n{json.dumps(json_request)}"
         )
 
@@ -395,13 +215,25 @@ def filling_form_single_request(form_fields_info):
         if llm_response.startswith("```") and llm_response.endswith("```"):
             llm_response = llm_response.strip("```").strip()
 
-        # Validate JSON structure
+        # Validate and clean up JSON response
         try:
+            llm_response = llm_response.strip()
+            
+            # Remove unwanted prefixes or suffixes (e.g., 'json\n')
+            if llm_response.lower().startswith("json"):
+                llm_response = llm_response[len("json"):].strip()
+
+            # Remove any surrounding code block indicators (e.g., triple backticks)
+            if llm_response.startswith("```") and llm_response.endswith("```"):
+                llm_response = llm_response.strip("```").strip()
+
+            # Attempt to parse JSON
             filled_data = json.loads(llm_response)
-        except json.JSONDecodeError:
-            # Handle improperly formatted JSON
+        except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON response: {llm_response}")
-            raise ValueError("Invalid JSON response from LLM.")
+            raise ValueError("Invalid JSON response from LLM.") from e
+
+        logger.info(f"Cleaned LLM response: {llm_response}")
 
         logger.info(f"Parsed JSON response: {filled_data}")
 
@@ -421,11 +253,43 @@ def filling_form_single_request(form_fields_info):
         raise
 
 
+# @app.route('/api/auto_fill', methods=['POST'])
+# def auto_fill():
+#     """
+#     Flask endpoint for auto-filling the form.
+#     """
+#     if request.is_json:
+#         html_content = request.json.get('html_content', '')
+#         try:
+#             form_fields_info = get_form_field_descriptions(html_content)
+#             logger.info(f"Extracted Form Fields Info: {form_fields_info}")
+
+#             # Fill form with a single LLM call
+#             structured_responses = filling_form_single_request(form_fields_info)
+#             #logger.info(f"Structured Responses: {structured_responses}")
+
+#             response_data = {}
+
+#             for field in structured_responses:
+#                 # Separate fields by their card ID or parent container
+#                 card_id = field.get('id').split('[')[1].split(']')[0]  # Extract card ID if present
+#                 if card_id not in response_data:
+#                     response_data[card_id] = {}
+
+#                 # Map the field response
+#                 response_data[card_id][field['id']] = field.get('response', "")
+
+#             logger.info(f"Final Response Data: {response_data}")
+
+#             return jsonify(response_data), 200
+#         except Exception as e:
+#             logger.error(f"Error in auto_fill: {e}")
+#             return jsonify({"error": str(e)}), 500
+#     else:
+#         return jsonify({"error": "Invalid request format"}), 400
+
 @app.route('/api/auto_fill', methods=['POST'])
 def auto_fill():
-    """
-    Flask endpoint for auto-filling the form.
-    """
     if request.is_json:
         html_content = request.json.get('html_content', '')
         try:
@@ -434,32 +298,22 @@ def auto_fill():
 
             # Fill form with a single LLM call
             structured_responses = filling_form_single_request(form_fields_info)
-            #logger.info(f"Structured Responses: {structured_responses}")
 
-            # Create a response mapping field IDs to their responses
-            # response_data = {
-            #     field['id']: field.get('response', "")
-            #     for field in structured_responses if field['type'] == 'text'
-            # }
+            # Build the response data to fill form fields
             response_data = {}
-
             for field in structured_responses:
-                # Separate fields by their card ID or parent container
-                card_id = field.get('id').split('[')[1].split(']')[0]  # Extract card ID if present
-                if card_id not in response_data:
-                    response_data[card_id] = {}
-
-                # Map the field response
-                response_data[card_id][field['id']] = field.get('response', "")
+                field_id = field.get('id', '')
+                response_data[field_id] = field.get('response', '')
 
             logger.info(f"Final Response Data: {response_data}")
-
             return jsonify(response_data), 200
         except Exception as e:
             logger.error(f"Error in auto_fill: {e}")
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Invalid request format"}), 400
+
+
 
 # Add the new endpoint for generating cover letters
 @app.route('/api/generate_cover_letter', methods=['POST'])
