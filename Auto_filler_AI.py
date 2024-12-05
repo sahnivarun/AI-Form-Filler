@@ -76,25 +76,6 @@ class CustomGenAIModel(LLM):
         return "custom_genai"
 from typing import Optional, List
 
-# class G4FLLM(LLM):
-#     @property
-#     def _llm_type(self) -> str:
-#         return "g4f"
-
-#     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-#         client = Client()
-#         response = client.chat.completions.create(
-#             model="gpt-4o",
-#             messages=[{"role": "user", "content": prompt}],
-#         )
-#         output = response.choices[0].message.content
-#         if stop:
-#             stop_indexes = (output.find(s) for s in stop if s in output)
-#             min_stop = min(stop_indexes, default=-1)
-#             if min_stop > -1:
-#                 output = output[:min_stop]
-#         return output
-
 # Retrieve the custom Google GenAI LLM
 def get_llm():
     os.environ["API_KEY"] = "AIzaSyDihkQrXCbVsaRb_4lkrIy7FmIulrVD77s"
@@ -177,14 +158,6 @@ def get_form_field_descriptions(html_content):
 app = Flask(__name__)
 CORS(app)
 
-# def get_json_request(form_fields_info):
-#     """
-#     Creates a JSON object where keys are field labels and values are empty strings.
-#     """
-#     json_request = {field['label']: "" for field in form_fields_info }
-#     logger.info(f"Generated JSON request: {json_request}")
-#     return json_request
-
 def get_json_request(form_fields_info):
     """
     Creates a JSON object where keys are field labels, and values include options for applicable fields.
@@ -258,40 +231,9 @@ def filling_form_single_request(form_fields_info):
             logger.error(f"Error parsing JSON response: {llm_response}")
             raise ValueError("Invalid JSON response from LLM.") from e
 
-        # # Validate and clean up JSON response
-        # try:
-        #     if isinstance(llm_response, str):  # Ensure response is a string before parsing
-        #         # Handle string responses (if any)
-        #         if llm_response.startswith("```") and llm_response.endswith("```"):
-        #             llm_response = llm_response.strip("```").strip()
-        #         if llm_response.lower().startswith("json"):
-        #             llm_response = llm_response[len("json"):].strip()
-
-        #         # Parse JSON if it's still a string
-        #         filled_data = json.loads(llm_response)
-        #     elif isinstance(llm_response, dict):
-        #         # If already a dictionary, use it directly
-        #         filled_data = llm_response
-        #     else:
-        #         raise ValueError("Unexpected response format from LLM.")
-        # except json.JSONDecodeError as e:
-        #     logger.error(f"Error parsing JSON response: {llm_response}")
-        #     raise ValueError("Invalid JSON response from LLM.") from e
-
-        # logger.info(f"Cleaned LLM response: {llm_response}")
 
         logger.info(f"Parsed JSON response: {filled_data}")
 
-        # Map JSON responses to form fields
-        # for field in form_fields_info:
-        #     label = field.get('label', '').strip()
-        #     if label in filled_data:
-        #         field['response'] = filled_data[label].value
-        #     else:
-        #         field['response'] = ""
-        # Map JSON responses to form fields
-        # Map JSON responses to form fields
-        # Map JSON responses to form fields
         for field in form_fields_info:
             label = field.get('label', '').strip()
             if label in filled_data:
