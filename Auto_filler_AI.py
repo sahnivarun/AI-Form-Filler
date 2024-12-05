@@ -37,6 +37,10 @@ from langchain.llms.base import LLM
 import json
 import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from langchain_g4f import G4FLLM
 
 def retry_with_backoff(api_call, max_retries=5):
@@ -72,24 +76,24 @@ class CustomGenAIModel(LLM):
         return "custom_genai"
 from typing import Optional, List
 
-class G4FLLM(LLM):
-    @property
-    def _llm_type(self) -> str:
-        return "g4f"
+# class G4FLLM(LLM):
+#     @property
+#     def _llm_type(self) -> str:
+#         return "g4f"
 
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        client = Client()
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        output = response.choices[0].message.content
-        if stop:
-            stop_indexes = (output.find(s) for s in stop if s in output)
-            min_stop = min(stop_indexes, default=-1)
-            if min_stop > -1:
-                output = output[:min_stop]
-        return output
+#     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+#         client = Client()
+#         response = client.chat.completions.create(
+#             model="gpt-4o",
+#             messages=[{"role": "user", "content": prompt}],
+#         )
+#         output = response.choices[0].message.content
+#         if stop:
+#             stop_indexes = (output.find(s) for s in stop if s in output)
+#             min_stop = min(stop_indexes, default=-1)
+#             if min_stop > -1:
+#                 output = output[:min_stop]
+#         return output
 
 # Retrieve the custom Google GenAI LLM
 def get_llm():
@@ -101,10 +105,8 @@ def get_llm():
 def process_data():
     loader = PyPDFDirectoryLoader("info")
     docs = loader.load()
-    #logger.info(f"Loaded Documents: {docs}")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=50)
     texts = text_splitter.split_documents(docs)
-    #logger.info(f"Split Texts: {texts}")
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
     db = FAISS.from_documents(texts, embeddings)
     return db
@@ -153,6 +155,18 @@ def get_form_field_descriptions(html_content):
 
             field_data['type'] = field_type
 
+            
+            # Extract dropdown options
+            if field.name == 'select':
+                options = field.find_all('option')
+                field_data['options'] = [option.get_text(strip=True) for option in options if option.get_text(strip=True)]
+
+            # Extract radio button values
+            if field_type == 'radio':
+                radios = container.find_all('input', {'type': 'radio'})
+                field_data['options'] = [radio.get('value') for radio in radios if radio.get('value')]
+
+
             # Append valid field data
             if 'label' in field_data and 'id' in field_data:
                 field_info.append(field_data)
@@ -163,19 +177,31 @@ def get_form_field_descriptions(html_content):
 app = Flask(__name__)
 CORS(app)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# def get_json_request(form_fields_info):
+#     """
+#     Creates a JSON object where keys are field labels and values are empty strings.
+#     """
+#     json_request = {field['label']: "" for field in form_fields_info }
+#     logger.info(f"Generated JSON request: {json_request}")
+#     return json_request
 
 def get_json_request(form_fields_info):
     """
-    Creates a JSON object where keys are field labels and values are empty strings.
+    Creates a JSON object where keys are field labels, and values include options for applicable fields.
     """
-    #json_request = {field['label']: "" for field in form_fields_info if field['type'] == 'text'}
-    json_request = {field['label']: "" for field in form_fields_info }
+    json_request = {}
+    
+    for field in form_fields_info:
+        field_label = field['label']
+        json_request[field_label] = {"value": ""}  # Default empty value for the field
 
-    logger.info(f"Generated JSON request: {json_request}")
+        # Include options if the field has them (for dropdowns, radios, etc.)
+        if 'options' in field:
+            json_request[field_label]['options'] = field['options']
+
+    logger.info(f"Generated JSON request with options: {json.dumps(json_request, indent=2)}")
     return json_request
+
 
 def filling_form_single_request(form_fields_info):
     try:
@@ -183,17 +209,29 @@ def filling_form_single_request(form_fields_info):
         db = process_data()
         json_request = get_json_request(form_fields_info)
 
-        # Create a prompt for the LLM
+        # # Create a prompt for the LLM
+        # prompt = (
+        #     f"You are an AI assistant helping to fill out a job application form using the provided documents. "
+        #     f"For each question in the form, generate an appropriate response based on the user's resume, documents, "
+        #     f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
+        #     f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
+        #     f"generate a thoughtful answer based on common professional aspirations and values. "
+        #     f"If the documents do not contain an answer for a question, provide a general but contextually relevant response. "
+        #     f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments. "
+        #     f"JSON object:\n\n{json.dumps(json_request)}"
+        # )
         prompt = (
             f"You are an AI assistant helping to fill out a job application form using the provided documents. "
-            f"For each question in the form, generate an appropriate response based on the user's resume, documents, "
+            f"Here is the form structure and its valid options (if applicable):\n\n"
+            f"{json.dumps(json_request, indent=2)}\n\n"
+            f"For each question, generate an appropriate response based on the user's resume, documents, "
             f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
             f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
             f"generate a thoughtful answer based on common professional aspirations and values. "
-            f"If the documents do not contain an answer for a question, provide a general but contextually relevant response. "
-            f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments. "
-            f"JSON object:\n\n{json.dumps(json_request)}"
+            f"Ensure that all responses strictly conform to the options provided (if any). "
+            f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
         )
+
 
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
@@ -210,6 +248,71 @@ def filling_form_single_request(form_fields_info):
         llm_response = result['answer'].strip() if result['answer'] else "{}"
 
         logger.info(f"Raw LLM response: {llm_response}")
+
+        # #debug
+        # llm_response = {
+        #     "resume": "Varun Sahni",
+        #     "name": "Varun Sahni",
+        #     "email": "varunsahni@tamu.edu",
+        #     "phone": "(979) 344-3430",
+        #     "location": "3803 Wellborn Rd, Apt 1221A, Bryan, Texas, 77801",
+        #     "citizenship": "Indian",
+        #     "org": "",
+        #     "urls[LinkedIn]": "https://www.linkedin.com/in/varun-sahni-10134v786/",
+        #     "urls[Other (GitHub, Portfolio, etc.)]": "",
+        #     "eeo[gender]": "Male",
+        #     "Hispanic or Latino": "No",
+        #     "eeo[veteran]": "No",
+        #     "eeo[disability]": "No",
+        #     "Enter your full name": "Varun Sahni",
+        #     "MM/DD/YYYY": "12/04/2024",
+        #     "education": {
+        #         "current_program": {
+        #         "institution": "Texas A&M University",
+        #         "degree": "Master of Science in Computer Science",
+        #         "GPA": "4.0/4.0",
+        #         "duration": "Aug 2023 – Aug 2025"
+        #         },
+        #         "previous_program": {
+        #         "institution": "Delhi Technological University",
+        #         "degree": "Bachelor of Engineering in Electrical Engineering",
+        #         "GPA": "4.0/4.0",
+        #         "duration": "Aug 2015 – June 2019"
+        #         }
+        #     },
+        #     "professional_experience": [
+        #         {
+        #         "title": "Business Intelligence Developer",
+        #         "organization": "NVIDIA",
+        #         "duration": "Nov 2023 – Aug 2024",
+        #         "technologies": ["Python", "React", "SQL", "Power BI"],
+        #         "key_contributions": [
+        #             "Automated tasks using Python and created insightful Power BI dashboards."
+        #         ]
+        #         },
+        #         {
+        #         "title": "Product Engineer",
+        #         "organization": "Bharti Airtel Limited",
+        #         "duration": "Jun 2019 – Jul 2023",
+        #         "technologies": ["Java", "SQL", "Figma", "Power BI"],
+        #         "key_contributions": [
+        #             "Reduced customer handling time by 13% through application enhancements.",
+        #             "Streamlined customer journeys, reducing service requests by 22%."
+        #         ]
+        #         }
+        #     ],
+        #     "technical_skills": {
+        #         "programming_languages": ["Python", "SQL", "JavaScript", "C++", "R", "Java", "HTML", "CSS"]
+        #     },
+        #     "legal_authorization": "Yes",
+        #     "visa_sponsorship": "Yes",
+        #     "acknowledgements": "Acknowledged",
+        #     "available_to_work": "Yes",
+        #     "available_for_full_time": "Yes",
+        #     "family_relationships_in_org": "No"
+        #     }
+        
+        # logger.info(f"Updated LLM response: {llm_response}")
 
         # Clean up the LLM response
         if llm_response.startswith("```") and llm_response.endswith("```"):
@@ -233,7 +336,27 @@ def filling_form_single_request(form_fields_info):
             logger.error(f"Error parsing JSON response: {llm_response}")
             raise ValueError("Invalid JSON response from LLM.") from e
 
-        logger.info(f"Cleaned LLM response: {llm_response}")
+        # # Validate and clean up JSON response
+        # try:
+        #     if isinstance(llm_response, str):  # Ensure response is a string before parsing
+        #         # Handle string responses (if any)
+        #         if llm_response.startswith("```") and llm_response.endswith("```"):
+        #             llm_response = llm_response.strip("```").strip()
+        #         if llm_response.lower().startswith("json"):
+        #             llm_response = llm_response[len("json"):].strip()
+
+        #         # Parse JSON if it's still a string
+        #         filled_data = json.loads(llm_response)
+        #     elif isinstance(llm_response, dict):
+        #         # If already a dictionary, use it directly
+        #         filled_data = llm_response
+        #     else:
+        #         raise ValueError("Unexpected response format from LLM.")
+        # except json.JSONDecodeError as e:
+        #     logger.error(f"Error parsing JSON response: {llm_response}")
+        #     raise ValueError("Invalid JSON response from LLM.") from e
+
+        # logger.info(f"Cleaned LLM response: {llm_response}")
 
         logger.info(f"Parsed JSON response: {filled_data}")
 
@@ -251,42 +374,6 @@ def filling_form_single_request(form_fields_info):
     except Exception as e:
         logger.error(f"Error in filling_form_single_request: {e}")
         raise
-
-
-# @app.route('/api/auto_fill', methods=['POST'])
-# def auto_fill():
-#     """
-#     Flask endpoint for auto-filling the form.
-#     """
-#     if request.is_json:
-#         html_content = request.json.get('html_content', '')
-#         try:
-#             form_fields_info = get_form_field_descriptions(html_content)
-#             logger.info(f"Extracted Form Fields Info: {form_fields_info}")
-
-#             # Fill form with a single LLM call
-#             structured_responses = filling_form_single_request(form_fields_info)
-#             #logger.info(f"Structured Responses: {structured_responses}")
-
-#             response_data = {}
-
-#             for field in structured_responses:
-#                 # Separate fields by their card ID or parent container
-#                 card_id = field.get('id').split('[')[1].split(']')[0]  # Extract card ID if present
-#                 if card_id not in response_data:
-#                     response_data[card_id] = {}
-
-#                 # Map the field response
-#                 response_data[card_id][field['id']] = field.get('response', "")
-
-#             logger.info(f"Final Response Data: {response_data}")
-
-#             return jsonify(response_data), 200
-#         except Exception as e:
-#             logger.error(f"Error in auto_fill: {e}")
-#             return jsonify({"error": str(e)}), 500
-#     else:
-#         return jsonify({"error": "Invalid request format"}), 400
 
 @app.route('/api/auto_fill', methods=['POST'])
 def auto_fill():
