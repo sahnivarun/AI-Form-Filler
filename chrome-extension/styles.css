@@ -7,6 +7,10 @@ body {
     position: relative; /* Set body position as relative */
 }
 
+.section {
+    margin-bottom: 20px;
+}
+
 h1 {
     text-align: center;
     color: #00796b; /* Soft teal color for the heading */
@@ -94,19 +98,25 @@ textarea {
 }
 
 #copyCoverLetter {
-    margin-left: auto;
-    padding: 10px 20px;
-    background-color: #f9a825; /* Warm yellow for copy button */
+    position: absolute;
+    top: -10px; /* Moves it outside the box */
+    right: 10px; /* Aligns to the right edge */
+    margin: 0;
+    padding: 8px 12px; /* Compact button size */
     font-size: 14px;
-    font-weight: bold;
+    background-color: #00796b; /* Deep teal matching the app theme */
+    color: white; /* Text color for readability */
+    border-radius: 8px; /* Smooth rounded corners */
+    cursor: pointer; /* Pointer on hover */
     transition: background-color 0.3s ease, transform 0.2s;
-    position: relative; /* Relative positioning */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 #copyCoverLetter:hover {
-    background-color: #f57f17; /* Darker yellow on hover */
-    transform: scale(1.05);
+    background-color: #005f56; /* Darker teal for hover effect */
+    transform: scale(1.05); /* Slight zoom effect on hover */
 }
+
 
 footer {
     text-align: center;

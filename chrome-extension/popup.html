@@ -9,24 +9,34 @@
 <body>
     <div class="container">
         <h1>Auto Form Filler</h1>
-        
-        <label for="resumeInput">Upload Resume</label>
-        <input type="file" id="resumeInput" accept=".pdf" style="margin-top: 10px;">
+    
+        <!-- Cover Letter Section -->
+        <div class="section">
+            <input type="text" id="jobUrl" placeholder="Enter job description URL" style="margin-bottom: 10px;">
+            <button id="generateCoverLetter">Generate Cover Letter</button>
+            <br><br>
+            <div class="copy-container" style="position: relative;">
+                <textarea id="coverLetter" placeholder="Generated Cover Letter will appear here"></textarea>
+                <button id="copyCoverLetter" style="position: absolute; top: 10px; right: 10px;">Copy</button>
+            </div>
+        </div>
+    
+        <hr>
+    
+        <!-- Resume Section -->
+        <div class="section">
+            <label for="resumeInput">Upload Resume</label>
+            <input type="file" id="resumeInput" accept=".pdf" style="margin-top: 10px;">
+            <br>
+            <label for="resumeURL">Or Provide Resume URL</label>
+            <input type="text" id="resumeURL" placeholder="Resume URL" style="width: 80%; margin-top: 10px;">
+        </div>
+    
         <br>
-        <label for="resumeURL">Resume URL</label>
-        <input type="text" id="resumeURL" placeholder="Resume URL" style="width: 80%; margin-top: 10px;">
-        <button id="fillForms">Attach Resume and Fill Form</button>
-        
-        <br><br>
-        <!-- Input field for job description URL -->
-        <input type="text" id="jobUrl" placeholder="Enter job description URL">
-        <!-- Button to generate cover letter -->
-        <button id="generateCoverLetter">Generate Cover Letter</button>
-        <br><br>
-        <!-- Textarea to display the generated cover letter with a copy icon -->
-        <div class="copy-container">
-            <textarea id="coverLetter" placeholder="Generated Cover Letter will appear here"></textarea>
-            <button id="copyCoverLetter">Copy</button>
+    
+        <!-- Fill Form Button -->
+        <div class="section">
+            <button id="fillForms">Attach Resume and Fill Form</button>
         </div>
     </div>
 
