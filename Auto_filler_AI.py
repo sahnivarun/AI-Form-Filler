@@ -320,8 +320,10 @@ def create_cover_letter(job_description):
 
         # Create a prompt for the LLM
         prompt = (
-            f"Using the following job description and your knowledge about me from my documents, "
-            f"please write a personalized cover letter for this job application. "
+            f"Using the following job description and the provided documents, write a fully tailored, polished, and professional cover letter. "
+            f"Make sure to include all relevant details about my experience, skills, education, and achievements from my documents and GitHub profile, as well as alignment with the company's mission, values, and job requirements. "
+            f"Ensure the cover letter does not require any additional inputs or edits from me. Use professional and concise language. "
+            f"Do not include placeholders or request additional input. "
             f"Job Description:\n{job_description}\n\n"
             f"Cover Letter:"
         )
