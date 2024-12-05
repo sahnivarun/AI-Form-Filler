@@ -46,3 +46,22 @@ document.getElementById('generateCoverLetter').addEventListener('click', () => {
         alert('Please enter a job description URL.');
     }
 });
+
+// Event listener for the "Copy" button
+document.getElementById('copyCoverLetter').addEventListener('click', () => {
+    const coverLetter = document.getElementById('coverLetter');
+    if (coverLetter.value.trim() === '') {
+        alert('The cover letter content is empty. Generate the cover letter first.');
+        return;
+    }
+
+    // Select the content of the textarea
+    coverLetter.select();
+    coverLetter.setSelectionRange(0, 99999); // For mobile devices
+
+    // Copy the content to the clipboard
+    document.execCommand('copy');
+
+    // Provide user feedback
+    alert('Cover letter copied to clipboard!');
+});

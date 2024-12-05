@@ -1,18 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto Form Filler</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button id="fillForms">Fill Form</button>
-    <br><br>
-    <!-- Input field for job description URL -->
-    <input type="text" id="jobUrl" placeholder="Enter job description URL" style="width: 80%;">
-    <!-- Button to generate cover letter -->
-    <button id="generateCoverLetter">Generate Cover Letter</button>
-    <br><br>
-    <!-- Textarea to display the generated cover letter -->
-    <textarea id="coverLetter" rows="10" cols="50" placeholder="Generated Cover Letter will appear here"></textarea>
+    <div class="container">
+        <h1>Auto Form Filler</h1>
+        <button id="fillForms">Fill Form</button>
+        <br><br>
+        <!-- Input field for job description URL -->
+        <input type="text" id="jobUrl" placeholder="Enter job description URL">
+        <!-- Button to generate cover letter -->
+        <button id="generateCoverLetter">Generate Cover Letter</button>
+        <br><br>
+        <!-- Textarea to display the generated cover letter with a copy icon -->
+        <div class="copy-container">
+            <textarea id="coverLetter" placeholder="Generated Cover Letter will appear here"></textarea>
+            <button id="copyCoverLetter">Copy</button>
+        </div>
+    </div>
     <script src="popup.js"></script>
 </body>
 </html>

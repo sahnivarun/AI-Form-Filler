@@ -1,0 +1,110 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #eef2f3; /* Light blue-gray background for a modern feel */
+    color: #333;
+    position: relative; /* Set body position as relative */
+}
+
+h1 {
+    text-align: center;
+    color: #00796b; /* Soft teal color for the heading */
+    font-size: 32px;
+    margin-bottom: 20px;
+    position: relative; /* Relative positioning for adjustments */
+}
+
+#fillForms, #generateCoverLetter, #copyCoverLetter {
+    background-color: #00796b; /* Deep teal for buttons */
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    margin: 15px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: relative; /* Relative positioning */
+}
+
+#fillForms:hover, #generateCoverLetter:hover, #copyCoverLetter:hover {
+    background-color: #00695c; /* Slightly darker teal on hover */
+    transform: scale(1.05);
+}
+
+input[type="text"], textarea {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s, box-shadow 0.3s;
+    position: relative; /* Relative positioning */
+}
+
+input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: #00796b; /* Highlight border on focus */
+    box-shadow: 0 0 10px rgba(0, 121, 107, 0.5);
+}
+
+textarea {
+    resize: none;
+    height: 250px; /* Slightly taller for better usability */
+    position: relative; /* Relative positioning */
+}
+
+.container {
+    min-width: 400px;
+    padding: 30px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    position: relative; /* Relative positioning */
+}
+
+.copy-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative; /* Relative positioning */
+}
+
+#copyCoverLetter {
+    margin-left: auto;
+    padding: 10px 20px;
+    background-color: #f9a825; /* Warm yellow for copy button */
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s;
+    position: relative; /* Relative positioning */
+}
+
+#copyCoverLetter:hover {
+    background-color: #f57f17; /* Darker yellow on hover */
+    transform: scale(1.05);
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #555;
+    font-size: 14px;
+    position: relative; /* Relative positioning */
+}
+
+footer a {
+    color: #00796b;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
