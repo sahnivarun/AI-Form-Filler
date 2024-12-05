@@ -36,6 +36,8 @@ from langchain.llms.base import LLM
 
 import json
 import logging
+import base64
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -404,7 +406,28 @@ def create_cover_letter(job_description):
     except Exception as e:
         logger.error(f"Error in create_cover_letter: {e}")
         raise
-    
+
+@app.route('/api/fetch_resume', methods=['POST'])
+def fetch_resume():
+    if request.is_json:
+        resume_url = request.json.get('resume_url', '')
+        if not resume_url:
+            return jsonify({"error": "No resume URL provided"}), 400
+        try:
+            resp = requests.get(resume_url)
+            if resp.status_code != 200:
+                return jsonify({"error": f"Failed to fetch resume from URL. Status: {resp.status_code}"}), 500
+
+            file_content = base64.b64encode(resp.content).decode('utf-8')
+            # Return a data URL like: data:application/pdf;base64,<content>
+            data_url = f"data:application/pdf;base64,{file_content}"
+            return jsonify({"fileContent": data_url}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "Invalid request format"}), 400
+
+
       
 # Flask app entry point
 if __name__ == '__main__':

@@ -16,7 +16,7 @@ async function attachResumeFromURL(field, url) {
         }
 
         const blob = await response.blob();
-        const fileName = "resume.pdf"; // Provide a default filename if none exists
+        const fileName = "my_resume.pdf"; // Provide a default filename if none exists
         const file = new File([blob], fileName, { type: blob.type });
 
         if (!(file instanceof File)) {

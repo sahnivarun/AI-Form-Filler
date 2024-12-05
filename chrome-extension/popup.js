@@ -24,7 +24,93 @@ document.getElementById('fillForms').addEventListener('click', () => {
         alert('Please provide a resume file or a URL.');
         return;
     }
-    
+
+    // If no local file but URL is provided, fetch the resume first
+    if (!resumeInput && resumeURL) {
+        showLoader();
+        chrome.runtime.sendMessage({ action: 'fetch-resume', url: resumeURL }, (response) => {
+            hideLoader();
+            if (response && response.success) {
+                showLoader(); // Show loader while filling the form
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs.length > 0) {
+                        const activeTabId = tabs[0].id;
+
+                        // Inject the content script into the active tab
+                        chrome.scripting.executeScript(
+                            {
+                                target: { tabId: activeTabId },
+                                files: ['content.js'],
+                            },
+                            (injectionResults) => {
+                                if (chrome.runtime.lastError) {
+                                    console.error('Error injecting content script:', chrome.runtime.lastError.message);
+                                    alert('Error filling the form: ' + chrome.runtime.lastError.message);
+                                    hideLoader(); // Hide loader on error
+                                } 
+                                else {
+                                    console.log('Content script injected successfully.');
+
+                                    chrome.tabs.sendMessage(activeTabId, { 
+                                        action: 'fill-form', 
+                                        resumeURL, 
+                                        resumeFile: {
+                                            name: "my_resume.pdf",
+                                            type: "application/pdf",
+                                            size: 0,
+                                            content: response.fileContent
+                                        }
+                                    }, (msgResponse) => {
+                                        if (chrome.runtime.lastError) {
+                                            console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+                                        } else {
+                                            console.log("Message sent to content script successfully. Response:", msgResponse);
+                                        }
+                                    });
+                                }
+                            }
+                        );
+                
+                        // Listen for messages from the content script
+                        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+                            console.log("Message received from content script:", message);
+                            
+                            if (message.action === 'form-fill-complete') {
+                                console.log("Form filling action completed successfully. Details:", message);
+                                hideLoader(); // Hide loader once the form-filling is done
+                                alert('Form filled successfully!');
+                                sendResponse({ success: true });
+                            } 
+                            
+                            else if (message.action === 'form-fill-error') {
+                                console.error('Error during form filling:', message.error);
+                                hideLoader();
+                                alert('Error filling the form: ' + message.error);
+                                sendResponse({ success: false });
+                            }
+
+                            else {
+                                console.warn("Unexpected message action:", message.action);
+                            }
+                            
+                            return true; // Keeps the listener open for async response
+                        });
+                    } 
+                    
+                    else {
+                        console.error('No active tab found.');
+                        alert('No active tab found.');
+                        hideLoader(); // Hide loader if no active tab is found
+                    }
+                });
+            } else {
+                console.error("Error fetching resume from URL:", response ? response.error : 'Unknown error');
+                alert('Error fetching resume from URL: ' + (response ? response.error : 'Unknown error'));
+            }
+        });
+        return;
+    }
+
     showLoader(); // Show loader while filling the form
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

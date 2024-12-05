@@ -16,10 +16,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
                 return response.json();
             })
-            // .then((data) => {
-            //     // Send the response back to the content script
-            //     sendResponse({ success: true, data });
-            // })
 
             .then((data) => {
                 console.log("Auto-fill data fetched:", data);
@@ -35,11 +31,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // Send the response back to the content script
                 sendResponse({ success: true, data });
             })
-            
+
             .catch((error) => {
                 console.error('Error fetching auto-fill data:', error);
                 sendResponse({ success: false, error: error.message });
             });
+
+        return true; // Keep the message channel open for asynchronous response
+    }
+
+    else if (message.action === 'fetch-resume') {
+        const resumeUrl = message.url;
+        const apiUrl = "http://localhost:5055/api/fetch_resume";
+
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resume_url: resumeUrl }),
+        })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch resume. Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data && data.fileContent) {
+                sendResponse({ success: true, fileContent: data.fileContent });
+            } else {
+                sendResponse({ success: false, error: "No file content returned." });
+            }
+        })
+        .catch((error) => {
+            console.error('Error fetching resume from backend:', error);
+            sendResponse({ success: false, error: error.message });
+        });
 
         return true; // Keep the message channel open for asynchronous response
     }
