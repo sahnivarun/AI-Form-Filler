@@ -320,14 +320,14 @@ def create_cover_letter(job_description):
 
         # Create a prompt for the LLM
         prompt = (
-            f"Using the following job description and the provided documents, write a fully tailored, polished, and professional cover letter. "
-            f"Make sure to include all relevant details about my experience, skills, education, and achievements from my documents and GitHub profile, as well as alignment with the company's mission, values, and job requirements. "
-            f"Ensure the cover letter does not require any additional inputs or edits from me. Use professional and concise language. "
-            f"Do not include placeholders or request additional input. "
+            f"Using the following job description and the provided documents, write the body of a fully tailored, polished, and professional cover letter. "
+            f"Do not include any greetings (e.g., 'To Whom It May Concern') write only the main content of the cover letter and closings with my signature. "
+            f"Ensure the output is a complete, ready-to-submit body that focuses on aligning my experience, skills, and education with the job's requirements and the company's mission and values. "
+            f"Do not mention the platform where the job was found, specific hiring manager names, or any placeholders. "
+            f"If specific job details are missing, craft a general professional cover letter body suitable for a technical software engineering role, emphasizing my key strengths and achievements. "
             f"Job Description:\n{job_description}\n\n"
-            f"Cover Letter:"
+            f"Cover Letter Body:"
         )
-        #logger.info(f"Prompt sent to LLM: {prompt}")
 
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
