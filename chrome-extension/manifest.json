@@ -3,7 +3,7 @@
     "name": "Auto Form Filler LLM",
     "version": "1.0",
     "description": "Automatically fills forms on any webpage using AI.",
-    "permissions": ["scripting", "activeTab"],
+    "permissions": ["scripting", "activeTab", "tabs"],
     "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js"

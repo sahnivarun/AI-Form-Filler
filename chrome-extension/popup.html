@@ -9,7 +9,14 @@
 <body>
     <div class="container">
         <h1>Auto Form Filler</h1>
-        <button id="fillForms">Fill Form</button>
+        <!-- <button id="fillForms">Fill Form</button> -->
+        <label for="resumeInput">Upload Resume</label>
+        <input type="file" id="resumeInput" accept=".pdf" style="margin-top: 10px;">
+        <br>
+        <label for="resumeURL">Resume URL</label>
+        <input type="text" id="resumeURL" placeholder="Resume URL" style="width: 80%; margin-top: 10px;">
+        <button id="fillForms">Attach Resume and Fill Form</button>
+        
         <br><br>
         <!-- Input field for job description URL -->
         <input type="text" id="jobUrl" placeholder="Enter job description URL">
@@ -27,7 +34,7 @@
     <div id="loader" class="loader-overlay" style="display: none;">
         <div class="loader"></div>
     </div>
-    
+
     <script src="popup.js"></script>
 </body>
 </html>

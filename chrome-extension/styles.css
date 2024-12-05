@@ -35,7 +35,7 @@ h1 {
     transform: scale(1.05);
 }
 
-input[type="text"], textarea {
+input[type="text"], input[type="file"], textarea {
     width: 100%;
     padding: 15px;
     margin: 10px 0;
@@ -48,11 +48,28 @@ input[type="text"], textarea {
     position: relative; /* Relative positioning */
 }
 
-input[type="text"]:focus, textarea:focus {
+input[type="text"]:focus, input[type="file"]:focus, textarea:focus {
     outline: none;
     border-color: #00796b; /* Highlight border on focus */
     box-shadow: 0 0 10px rgba(0, 121, 107, 0.5);
 }
+
+/* Label Styling */
+label {
+    font-size: 16px; /* Readable font size */
+    font-weight: bold; /* Emphasize labels */
+    margin-bottom: 8px; /* Space between label and input */
+    display: block; /* Ensure label appears above input */
+    color: #00796b; /* Match the teal color scheme */
+    cursor: pointer; /* Indicate interactivity */
+    transition: color 0.3s ease; /* Smooth transition on hover */
+}
+
+/* Label Hover State */
+label:hover {
+    color: #005f56; /* Slightly darker teal on hover */
+}
+
 
 textarea {
     resize: none;

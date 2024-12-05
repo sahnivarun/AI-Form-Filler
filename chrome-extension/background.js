@@ -16,10 +16,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
                 return response.json();
             })
+            // .then((data) => {
+            //     // Send the response back to the content script
+            //     sendResponse({ success: true, data });
+            // })
+
             .then((data) => {
+                console.log("Auto-fill data fetched:", data);
+
+                // Add resume URL or file info if provided in the original message
+                if (message.resumeURL) {
+                    data.resumeURL = message.resumeURL;
+                }
+                if (message.localFile) {
+                    data.localFile = message.localFile;
+                }
+
                 // Send the response back to the content script
                 sendResponse({ success: true, data });
             })
+            
             .catch((error) => {
                 console.error('Error fetching auto-fill data:', error);
                 sendResponse({ success: false, error: error.message });
