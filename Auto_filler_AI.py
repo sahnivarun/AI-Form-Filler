@@ -55,7 +55,7 @@ def retry_with_backoff(api_call, max_retries=5):
 
 
 # Custom Language Model Wrapper
-class CustomGenAIModel(LLM):
+class GeminiGenAIModel(LLM):
     _model: any = PrivateAttr()
 
     def __init__(self, model):
@@ -77,11 +77,56 @@ class CustomGenAIModel(LLM):
 from typing import Optional, List
 
 # Retrieve the custom Google GenAI LLM
-def get_llm():
+def get_gemini_llm():
     os.environ["API_KEY"] = "AIzaSyDihkQrXCbVsaRb_4lkrIy7FmIulrVD77s"
     genai.configure(api_key=os.environ["API_KEY"])
     model = genai.GenerativeModel("gemini-1.5-flash")
-    return CustomGenAIModel(model)
+    return GeminiGenAIModel(model)
+# Import OpenAIModel
+
+
+from langchain.llms.base import LLM
+from pydantic import BaseModel, PrivateAttr
+from typing import Optional, List
+
+from langchain.llms.base import LLM
+from pydantic import BaseModel, PrivateAttr
+from typing import Optional, List
+
+from langchain.llms.base import LLM
+from pydantic import BaseModel, PrivateAttr
+from typing import Optional, List
+
+class OpenAIModel(LLM, BaseModel):
+    api_key: str
+    llm_model: str
+
+    _chat_model: any = PrivateAttr()
+
+    def __init__(self, api_key: str, llm_model: str, **kwargs):
+        # Initialize the Pydantic BaseModel
+        super().__init__(api_key=api_key, llm_model=llm_model, **kwargs)
+        from langchain_openai import ChatOpenAI
+        # Initialize the private ChatOpenAI model
+        self._chat_model = ChatOpenAI(
+            model_name=self.llm_model, openai_api_key=self.api_key, temperature=0.4
+        )
+
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+        # Call the underlying ChatOpenAI model
+        response = self._chat_model.invoke(prompt)
+        return response.content if hasattr(response, "content") else str(response)
+
+    @property
+    def _llm_type(self) -> str:
+        return "openai"
+
+# Function to retrieve OpenAI LLM
+def get_open_ai_llm():
+    # Replace with your API Key
+    api_key = "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"
+    llm_model = "gpt-4o-mini"  # Specify the desired OpenAI model
+    return OpenAIModel(api_key, llm_model)
 
 def process_data():
     loader = PyPDFDirectoryLoader("info")
@@ -177,7 +222,7 @@ def get_json_request(form_fields_info):
 
 def filling_form_single_request(form_fields_info):
     try:
-        llm = get_llm()
+        llm = get_open_ai_llm()
         db = process_data()
         json_request = get_json_request(form_fields_info)
 
@@ -314,14 +359,14 @@ def generate_cover_letter():
 # Function to create a cover letter using the LLM
 def create_cover_letter(job_description):
     try:
-        llm = get_llm()
+        llm = get_open_ai_llm()
         # Load user's information from documents
         db = process_data()
 
         # Create a prompt for the LLM
         prompt = (
             f"Using the following job description and the provided documents, write the body of a fully tailored, polished, and professional cover letter. "
-            f"Do not include any greetings (e.g., 'To Whom It May Concern') write only the main content of the cover letter and closings with my signature. "
+            f"Do not include any greetings or any closing salutation (e.g., 'To Whom It May Concern') write only the main content of the cover letter . "
             f"Ensure the output is a complete, ready-to-submit body that focuses on aligning my experience, skills, and education with the job's requirements and the company's mission and values. "
             f"Do not mention the platform where the job was found, specific hiring manager names, or any placeholders. "
             f"If specific job details are missing, craft a general professional cover letter body suitable for a technical software engineering role, emphasizing my key strengths and achievements. "
