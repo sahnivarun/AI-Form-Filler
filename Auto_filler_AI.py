@@ -128,6 +128,8 @@ def get_open_ai_llm():
     llm_model = "gpt-4o-mini"  # Specify the desired OpenAI model
     return OpenAIModel(api_key, llm_model)
 
+from docx import Document
+
 def process_data():
     loader = PyPDFDirectoryLoader("info")
     docs = loader.load()
@@ -136,6 +138,7 @@ def process_data():
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
     db = FAISS.from_documents(texts, embeddings)
     return db
+
 from bs4 import BeautifulSoup
 
 def get_form_field_descriptions(html_content):
@@ -226,17 +229,34 @@ def filling_form_single_request(form_fields_info):
         db = process_data()
         json_request = get_json_request(form_fields_info)
 
+        # prompt = (
+        #     f"You are an AI assistant helping to fill out a job application form using the provided documents. "
+        #     f"Here is the form structure and its valid options (if applicable):\n\n"
+        #     f"{json.dumps(json_request, indent=2)}\n\n"
+        #     f"For each question, generate an appropriate response based on the user's resume, documents, "
+        #     f"and job application context. Ensure that fields such as LinkedIn URL, GitHub URL, and Twitter URL are filled using the provided information. "
+        #     f"If the user's documents do not explicitly provide data for these fields, infer or generate placeholder URLs (e.g., 'https://www.linkedin.com/in/username', "
+        #     f"'https://github.com/username', 'https://twitter.com/username') based on standard formats, ensuring relevance and professionalism. "
+        #     f"If a question asks about motivations, company-specific enthusiasm, or open-ended responses (e.g., 'What gets you excited about joining this team?'), "
+        #     f"generate a thoughtful answer based on common professional aspirations and values. "
+        #     f"Ensure that all responses strictly conform to the options provided (if any). "
+        #     f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
+        # )
+
         prompt = (
-        f"You are an AI assistant helping to fill out a job application form using the provided documents. "
-        f"Here is the form structure and its valid options (if applicable):\n\n"
-        f"{json.dumps(json_request, indent=2)}\n\n"
-        f"For each question, generate an appropriate response based on the user's resume, documents, "
-        f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
-        f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
-        f"generate a thoughtful answer based on common professional aspirations and values. "
-        f"Ensure that all responses strictly conform to the options provided (if any). "
-        f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
-    )
+            f"You are an AI assistant helping to fill out a job application form using the provided documents. "
+            f"Here is the form structure and its valid options (if applicable):\n\n"
+            f"{json.dumps(json_request, indent=2)}\n\n"
+            f"For each question, extract and write appropriate responses directly from the user's resume, documents, "
+            f"and job application context. Ensure that fields such as LinkedIn URL, GitHub URL, and Twitter URL are filled using the provided information. "
+            f"If specific data for these fields is missing in the documents, infer or generate placeholder URLs (e.g., 'https://www.linkedin.com/in/username', "
+            f"'https://github.com/username', 'https://twitter.com/username') based on standard formats. "
+            f"Include as much relevant information as possible from the resume to comprehensively answer all questions, "
+            f"tailoring responses to align with the job description and application context. "
+            f"Ensure that all responses strictly conform to the options provided (if any). "
+            f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
+        )
+
         
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
