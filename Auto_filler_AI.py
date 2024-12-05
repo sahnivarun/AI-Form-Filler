@@ -202,37 +202,24 @@ def get_json_request(form_fields_info):
     logger.info(f"Generated JSON request with options: {json.dumps(json_request, indent=2)}")
     return json_request
 
-
 def filling_form_single_request(form_fields_info):
     try:
         llm = get_llm()
         db = process_data()
         json_request = get_json_request(form_fields_info)
 
-        # # Create a prompt for the LLM
-        # prompt = (
-        #     f"You are an AI assistant helping to fill out a job application form using the provided documents. "
-        #     f"For each question in the form, generate an appropriate response based on the user's resume, documents, "
-        #     f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
-        #     f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
-        #     f"generate a thoughtful answer based on common professional aspirations and values. "
-        #     f"If the documents do not contain an answer for a question, provide a general but contextually relevant response. "
-        #     f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments. "
-        #     f"JSON object:\n\n{json.dumps(json_request)}"
-        # )
         prompt = (
-            f"You are an AI assistant helping to fill out a job application form using the provided documents. "
-            f"Here is the form structure and its valid options (if applicable):\n\n"
-            f"{json.dumps(json_request, indent=2)}\n\n"
-            f"For each question, generate an appropriate response based on the user's resume, documents, "
-            f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
-            f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
-            f"generate a thoughtful answer based on common professional aspirations and values. "
-            f"Ensure that all responses strictly conform to the options provided (if any). "
-            f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
-        )
-
-
+        f"You are an AI assistant helping to fill out a job application form using the provided documents. "
+        f"Here is the form structure and its valid options (if applicable):\n\n"
+        f"{json.dumps(json_request, indent=2)}\n\n"
+        f"For each question, generate an appropriate response based on the user's resume, documents, "
+        f"and job application context. If a question asks about motivations, company-specific enthusiasm, or "
+        f"open-ended responses (e.g., 'What gets you excited about joining this team?'), "
+        f"generate a thoughtful answer based on common professional aspirations and values. "
+        f"Ensure that all responses strictly conform to the options provided (if any). "
+        f"Return the completed JSON object strictly in JSON format. Respond strictly in valid JSON format without any additional text, code blocks, or comments."
+    )
+        
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
@@ -248,71 +235,6 @@ def filling_form_single_request(form_fields_info):
         llm_response = result['answer'].strip() if result['answer'] else "{}"
 
         logger.info(f"Raw LLM response: {llm_response}")
-
-        # #debug
-        # llm_response = {
-        #     "resume": "Varun Sahni",
-        #     "name": "Varun Sahni",
-        #     "email": "varunsahni@tamu.edu",
-        #     "phone": "(979) 344-3430",
-        #     "location": "3803 Wellborn Rd, Apt 1221A, Bryan, Texas, 77801",
-        #     "citizenship": "Indian",
-        #     "org": "",
-        #     "urls[LinkedIn]": "https://www.linkedin.com/in/varun-sahni-10134v786/",
-        #     "urls[Other (GitHub, Portfolio, etc.)]": "",
-        #     "eeo[gender]": "Male",
-        #     "Hispanic or Latino": "No",
-        #     "eeo[veteran]": "No",
-        #     "eeo[disability]": "No",
-        #     "Enter your full name": "Varun Sahni",
-        #     "MM/DD/YYYY": "12/04/2024",
-        #     "education": {
-        #         "current_program": {
-        #         "institution": "Texas A&M University",
-        #         "degree": "Master of Science in Computer Science",
-        #         "GPA": "4.0/4.0",
-        #         "duration": "Aug 2023 – Aug 2025"
-        #         },
-        #         "previous_program": {
-        #         "institution": "Delhi Technological University",
-        #         "degree": "Bachelor of Engineering in Electrical Engineering",
-        #         "GPA": "4.0/4.0",
-        #         "duration": "Aug 2015 – June 2019"
-        #         }
-        #     },
-        #     "professional_experience": [
-        #         {
-        #         "title": "Business Intelligence Developer",
-        #         "organization": "NVIDIA",
-        #         "duration": "Nov 2023 – Aug 2024",
-        #         "technologies": ["Python", "React", "SQL", "Power BI"],
-        #         "key_contributions": [
-        #             "Automated tasks using Python and created insightful Power BI dashboards."
-        #         ]
-        #         },
-        #         {
-        #         "title": "Product Engineer",
-        #         "organization": "Bharti Airtel Limited",
-        #         "duration": "Jun 2019 – Jul 2023",
-        #         "technologies": ["Java", "SQL", "Figma", "Power BI"],
-        #         "key_contributions": [
-        #             "Reduced customer handling time by 13% through application enhancements.",
-        #             "Streamlined customer journeys, reducing service requests by 22%."
-        #         ]
-        #         }
-        #     ],
-        #     "technical_skills": {
-        #         "programming_languages": ["Python", "SQL", "JavaScript", "C++", "R", "Java", "HTML", "CSS"]
-        #     },
-        #     "legal_authorization": "Yes",
-        #     "visa_sponsorship": "Yes",
-        #     "acknowledgements": "Acknowledged",
-        #     "available_to_work": "Yes",
-        #     "available_for_full_time": "Yes",
-        #     "family_relationships_in_org": "No"
-        #     }
-        
-        # logger.info(f"Updated LLM response: {llm_response}")
 
         # Clean up the LLM response
         if llm_response.startswith("```") and llm_response.endswith("```"):
@@ -361,12 +283,40 @@ def filling_form_single_request(form_fields_info):
         logger.info(f"Parsed JSON response: {filled_data}")
 
         # Map JSON responses to form fields
+        # for field in form_fields_info:
+        #     label = field.get('label', '').strip()
+        #     if label in filled_data:
+        #         field['response'] = filled_data[label].value
+        #     else:
+        #         field['response'] = ""
+        # Map JSON responses to form fields
+        # Map JSON responses to form fields
+        # Map JSON responses to form fields
         for field in form_fields_info:
             label = field.get('label', '').strip()
             if label in filled_data:
-                field['response'] = filled_data[label]
+                response_value = filled_data[label].get('value', "")
+
+                # Handle radio button responses
+                if field['type'] == 'radio' and 'options' in field:
+                    if response_value in field['options']:
+                        field['response'] = response_value  # Match response with options
+                    else:
+                        field['response'] = ""  # Set to empty if no match
+
+                # Handle dropdown responses
+                elif field['type'] == 'select' and 'options' in field:
+                    if response_value in field['options']:
+                        field['response'] = response_value  # Match response with options
+                    else:
+                        field['response'] = ""  # Set to empty if no match
+
+                else:
+                    # For other field types, simply assign the value
+                    field['response'] = response_value
             else:
                 field['response'] = ""
+
 
         logger.info(f"Final filled form fields: {form_fields_info}")
         return form_fields_info
