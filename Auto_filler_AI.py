@@ -462,11 +462,12 @@ def create_cover_letter(job_description):
 
         # Print stats for cover letter generation
         print()
+        print(f"Response Time: {response_time:.2f} seconds\n")
+
         print("\n--- GPT Call: Cover Letter Generation ---")
         print(f"Prompt Tokens: {prompt_tokens}")
         print(f"Response Tokens: {response_tokens}")
         print(f"Total Tokens: {prompt_tokens + response_tokens}")
-        print(f"Response Time: {response_time:.2f} seconds\n")
 
         return cover_letter
 
