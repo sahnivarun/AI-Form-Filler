@@ -259,6 +259,7 @@ def filling_form_single_request(form_fields_info):
             f"'https://github.com/username', 'https://twitter.com/username', 'https://yourportfolio.com') based on standard formats, ensuring relevance and professionalism. "
             f"If a question asks about motivations, company-specific enthusiasm, or open-ended responses (e.g., 'What gets you excited about joining this team?'), "
             f"generate a thoughtful answer based on common professional aspirations and values. "
+            f"For any questions not explicitly covered in the document, provide a response based on your knowledge about me and the context of the job application. "
             f"Ensure that all responses strictly conform to the options provided (if any). "
             f"Return the completed JSON object strictly in JSON format without any additional text, code blocks, or comments."
         )
