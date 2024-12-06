@@ -16,6 +16,7 @@ click==8.1.7
 colorama==0.4.6
 dataclasses-json==0.6.7
 distro==1.9.0
+docx==0.2.4
 faiss-cpu==1.9.0.post1
 filelock==3.16.1
 Flask==3.1.0
@@ -63,6 +64,7 @@ langchain-text-splitters==0.3.2
 langchain_g4f @ git+https://github.com/MIDORIBIN/langchain-gpt4free.git@651e8edb7c9fe71cf2075765ca45fa216503673a
 langsmith==0.1.146
 lomond==0.3.3
+lxml==5.3.0
 lz4==4.3.3
 MarkupSafe==3.0.2
 marshmallow==3.23.1
@@ -92,6 +94,7 @@ pyparsing==3.2.0
 pypdf==5.1.0
 PySocks==1.7.1
 python-dateutil==2.9.0.post0
+python-docx==1.1.2
 python-dotenv==1.0.1
 pytz==2024.2
 PyYAML==6.0.2
