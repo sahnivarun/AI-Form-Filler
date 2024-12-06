@@ -34,9 +34,6 @@ import time
 import random
 from g4f import Provider, models
 from langchain.llms.base import LLM
-from pydantic import BaseModel, PrivateAttr
-from typing import Optional, List
-from langchain_openai import ChatOpenAI
 
 import os
 import platform
@@ -44,6 +41,7 @@ import json
 import logging
 import base64
 import requests
+
 
 # Function to clear the terminal
 def clear_terminal():
@@ -58,6 +56,7 @@ clear_terminal()
 # Print a startup message
 print("AI Form Auto Filler is started...")
 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,7 +68,7 @@ def retry_with_backoff(api_call, max_retries=5):
             return api_call()
         except ResourceExhausted:
             wait_time = (2 ** retry) + random.uniform(0, 1)
-            logger.warning(f"Retrying in {wait_time:.2f} seconds due to ResourceExhausted.")
+            print(f"Retrying in {wait_time:.2f} seconds...")
             time.sleep(wait_time)
     raise Exception("API retries exceeded. Quota may be exhausted.")
 
@@ -84,9 +83,7 @@ class GeminiGenAIModel(LLM):
 
     def _call(self, prompt: str, stop=None) -> str:
         try:
-            logger.info(f"Sending prompt to GeminiGenAI:\n{prompt}")
             response = retry_with_backoff(lambda: self._model.generate_content(prompt))
-            logger.info(f"Response from GeminiGenAI:\n{response.text}")
             return response.text
         except AttributeError:
             raise ValueError("The GenerativeModel object does not support 'generate_content'.")
@@ -105,7 +102,10 @@ def get_gemini_llm():
     model = genai.GenerativeModel("gemini-1.5-flash")
     return GeminiGenAIModel(model)
 
-# OpenAI ChatGPT Model
+from langchain.llms.base import LLM
+from pydantic import BaseModel, PrivateAttr
+from typing import Optional, List
+
 class OpenAIModel(LLM, BaseModel):
     api_key: str
     llm_model: str
@@ -115,7 +115,7 @@ class OpenAIModel(LLM, BaseModel):
     def __init__(self, api_key: str, llm_model: str, **kwargs):
         # Initialize the Pydantic BaseModel
         super().__init__(api_key=api_key, llm_model=llm_model, **kwargs)
-
+        from langchain_openai import ChatOpenAI
         # Initialize the private ChatOpenAI model
         self._chat_model = ChatOpenAI(
             model_name=self.llm_model, openai_api_key=self.api_key, temperature=0.4
@@ -132,14 +132,10 @@ class OpenAIModel(LLM, BaseModel):
 
 # Function to retrieve OpenAI LLM
 def get_open_ai_llm():
-    # Replace with your API Key
     api_key = "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"
     llm_model = "gpt-4o-mini"  # Specify the desired OpenAI model
     return OpenAIModel(api_key, llm_model)
-
-from docx import Document
-
-# Function to process PDF data
+    
 def process_data():
     loader = PyPDFDirectoryLoader("info")
     docs = loader.load()
@@ -147,10 +143,10 @@ def process_data():
     texts = text_splitter.split_documents(docs)
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
     db = FAISS.from_documents(texts, embeddings)
-    logger.info("Document processing completed successfully.")
     return db
 
-# Function to parse the Web Form
+from bs4 import BeautifulSoup
+
 def get_form_field_descriptions(html_content):
     """
     Extracts form field descriptions from generic HTML content using BeautifulSoup.
@@ -216,7 +212,6 @@ def get_form_field_descriptions(html_content):
 app = Flask(__name__)
 CORS(app)
 
-# Generate JSON request
 def get_json_request(form_fields_info):
     """
     Creates a JSON object where keys are field labels, and values include options for applicable fields.
@@ -231,10 +226,10 @@ def get_json_request(form_fields_info):
         if 'options' in field:
             json_request[field_label]['options'] = field['options']
 
+    print()
     logger.info(f"Generated JSON request with options: {json.dumps(json_request, indent=2)}")
     return json_request
 
-# Form filling request
 def filling_form_single_request(form_fields_info):
     try:
         llm = get_open_ai_llm()
@@ -339,7 +334,6 @@ def auto_fill():
         html_content = request.json.get('html_content', '')
         try:
             form_fields_info = get_form_field_descriptions(html_content)
-            print()
             #logger.info(f"Extracted Form Fields Info: {form_fields_info}")
 
             # Fill form with a single LLM call
@@ -351,14 +345,18 @@ def auto_fill():
                 field_id = field.get('id', '')
                 response_data[field_id] = field.get('response', '')
 
+            print()
             logger.info(f"Final Response Data: {response_data}")
+            
+            # At this point, form filling is completed
+            print("Form has been filled.")
+
             return jsonify(response_data), 200
         except Exception as e:
             logger.error(f"Error in auto_fill: {e}")
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Invalid request format"}), 400
-
 
 # Add the new endpoint for generating cover letters
 @app.route('/api/generate_cover_letter', methods=['POST'])
@@ -377,8 +375,6 @@ def generate_cover_letter():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Invalid request format"}), 400
-    
-
 # Function to create a cover letter using the LLM
 def create_cover_letter(job_description):
     try:
@@ -420,7 +416,6 @@ def create_cover_letter(job_description):
         logger.error(f"Error in create_cover_letter: {e}")
         raise
 
-# Function to fetch resume from google drive
 @app.route('/api/fetch_resume', methods=['POST'])
 def fetch_resume():
     if request.is_json:
@@ -440,6 +435,7 @@ def fetch_resume():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Invalid request format"}), 400
+
 
       
 # Flask app entry point
