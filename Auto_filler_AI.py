@@ -42,6 +42,9 @@ import logging
 import base64
 import requests
 
+import tiktoken  # For token counting
+from time import time  # For response timing
+
 
 # Function to clear the terminal
 def clear_terminal():
@@ -56,10 +59,16 @@ clear_terminal()
 # Print a startup message
 print("AI Form Auto Filler is started...")
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def count_tokens(text: str, model: str = "gpt-4") -> int:
+    """
+    Counts the number of tokens in a given text using the specified model.
+    """
+    encoding = tiktoken.encoding_for_model(model)
+    return len(encoding.encode(text))
 
 # Retry mechanism with logging
 def retry_with_backoff(api_call, max_retries=5):
@@ -227,6 +236,7 @@ def get_json_request(form_fields_info):
             json_request[field_label]['options'] = field['options']
 
     print()
+    print()
     logger.info(f"Generated JSON request with options: {json.dumps(json_request, indent=2)}")
     return json_request
 
@@ -253,6 +263,12 @@ def filling_form_single_request(form_fields_info):
             f"Return the completed JSON object strictly in JSON format without any additional text, code blocks, or comments."
         )
 
+        # Measure tokens in the prompt
+        prompt_tokens = count_tokens(prompt, model="gpt-4")
+
+        # Start timer
+        start_time = time()
+
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
@@ -265,7 +281,23 @@ def filling_form_single_request(form_fields_info):
             return response
 
         result = retry_with_backoff(api_call)
+
+        # End timer and calculate elapsed time
+        end_time = time()
+        response_time = end_time - start_time
+
         llm_response = result['answer'].strip() if result['answer'] else "{}"
+
+        # Measure tokens in the response
+        response_tokens = count_tokens(llm_response, model="gpt-4")
+
+        print()
+        # Print stats for form filling
+        print("\n--- GPT Call: Form Filling ---")
+        print(f"Prompt Tokens: {prompt_tokens}")
+        print(f"Response Tokens: {response_tokens}")
+        print(f"Total Tokens: {prompt_tokens + response_tokens}")
+        print(f"Response Time: {response_time:.2f} seconds\n")
 
         print()
         logger.info(f"Raw LLM response: {llm_response}")
@@ -292,8 +324,8 @@ def filling_form_single_request(form_fields_info):
             logger.error(f"Error parsing JSON response: {llm_response}")
             raise ValueError("Invalid JSON response from LLM.") from e
 
-        print()
-        logger.info(f"Parsed JSON response: {filled_data}")
+        #print()
+        #logger.info(f"Parsed JSON response: {filled_data}")
 
         for field in form_fields_info:
             label = field.get('label', '').strip()
@@ -320,8 +352,8 @@ def filling_form_single_request(form_fields_info):
             else:
                 field['response'] = ""
 
-        print()
-        logger.info(f"Final filled form fields: {form_fields_info}")
+        #print()
+        #logger.info(f"Final filled form fields: {form_fields_info}")
         return form_fields_info
 
     except Exception as e:
@@ -345,8 +377,8 @@ def auto_fill():
                 field_id = field.get('id', '')
                 response_data[field_id] = field.get('response', '')
 
-            print()
-            logger.info(f"Final Response Data: {response_data}")
+            #print()
+            #logger.info(f"Final Response Data: {response_data}")
             
             # At this point, form filling is completed
             print("Form has been filled.")
@@ -385,13 +417,21 @@ def create_cover_letter(job_description):
         # Create a prompt for the LLM
         prompt = (
             f"Using the following job description and the provided documents, write the body of a fully tailored, polished, and professional cover letter. "
-            f"Do not include any greetings or any closing salutation (e.g., 'To Whom It May Concern') write only the main content of the cover letter . "
-            f"Ensure the output is a complete, ready-to-submit body that focuses on aligning my experience, skills, and education with the job's requirements and the company's mission and values. "
+            f"Ensure the output is a complete, ready-to-submit cover letter body that focuses on aligning my experience, skills, and education with the job's requirements and the company's mission and values. "
+            f"End the letter with 'Sincerely,' followed by my full name, which you will extract directly from the provided document. "
+            f"Do not include any placeholders or guess my name if it is missing. If the name is not found in the document, do not write closing salution."
             f"Do not mention the platform where the job was found, specific hiring manager names, or any placeholders. "
             f"If specific job details are missing, craft a general professional cover letter body suitable for a technical software engineering role, emphasizing my key strengths and achievements. "
             f"Job Description:\n{job_description}\n\n"
             f"Cover Letter Body:"
         )
+
+
+        # Token measurement for prompt
+        prompt_tokens = count_tokens(prompt, model="gpt-4")
+
+        # Start timer for cover letter generation
+        start_time = time()
 
         # Create a conversational retrieval chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
@@ -407,8 +447,25 @@ def create_cover_letter(job_description):
 
         # Call the API with retry mechanism
         result = retry_with_backoff(api_call)
+
+        # End timer for cover letter generation
+        end_time = time()
+        response_time = end_time - start_time
+
         cover_letter = result['answer'].strip() if result['answer'] else ""
+        
         #logger.info(f"Generated Cover Letter: {cover_letter}")
+
+        # Token measurement for response
+        response_tokens = count_tokens(cover_letter, model="gpt-4")
+
+        # Print stats for cover letter generation
+        print()
+        print("\n--- GPT Call: Cover Letter Generation ---")
+        print(f"Prompt Tokens: {prompt_tokens}")
+        print(f"Response Tokens: {response_tokens}")
+        print(f"Total Tokens: {prompt_tokens + response_tokens}")
+        print(f"Response Time: {response_time:.2f} seconds\n")
 
         return cover_letter
 
